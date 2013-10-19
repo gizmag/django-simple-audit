@@ -5,7 +5,7 @@ import threading
 import uuid
 
 from django.db import models
-from django.contrib.auth.models import User
+from .compat import USER_MODEL
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.utils.translation import ugettext_lazy as _
@@ -89,7 +89,7 @@ class AuditRequest(models.Model):
     ip = models.IPAddressField()
     path = models.CharField(max_length=1024)
     date = models.DateTimeField(auto_now_add=True, verbose_name=_("Date"))
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(USER_MODEL)
 
     class Meta:
         db_table = 'audit_request'
