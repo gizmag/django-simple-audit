@@ -159,14 +159,11 @@ def save_audit(instance, operation, kwargs={}):
             #is there any change?
             if not changed_fields:
                 persist_audit = False
-            description = u"\n".join([u"%s %s: %s %s %s %s" %
+            description = u"\n".join([u"%s %s %s" %
                 (
                     _("field"),
                     k,
-                    _("was changed from"),
-                    format_value(v[0]),
-                    _("to"),
-                    format_value(v[1]),
+                    _("was changed"),
                 ) for k, v in changed_fields.items()])
         elif operation == Audit.DELETE:
             description = _('Deleted %s') % unicode(instance)
