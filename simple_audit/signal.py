@@ -55,7 +55,7 @@ def audit_m2m_change_relation(sender, **kwargs):
     if kwargs.get('action'):
         action = kwargs.get('action')
         instance = kwargs.get('instance')
-        if kwargs['action'] == 'post_add':
+        if kwargs['action'] in {'post_add', 'post_clear'}:
             cache_key = get_cache_key_for_instance(instance)
             dict_ = cache.get(cache_key)
             if not dict_:
