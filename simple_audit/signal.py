@@ -48,6 +48,46 @@ def audit_m2m_change(sender, **kwargs):
             pass
 
 
+def audit_m2m_change_relation(sender, **kwargs):
+    """
+    audit m2m relation changes is settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS is True
+    """
+    if kwargs.get('action'):
+        action = kwargs.get('action')
+        instance = kwargs.get('instance')
+        if kwargs['action'] == "pre_remove":
+            import ipdb; ipdb.set_trace()
+            print 'pre_remove'
+            pass
+        elif kwargs['action'] == "post_remove":
+            print 'post_remove'
+            pass
+        elif kwargs['action'] == 'pre_add':
+            pass
+        elif kwargs['action'] == 'post_add':
+            cache_key = get_cache_key_for_instance(instance)
+            dict_ = cache.get(cache_key)
+            if not dict_:
+                dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
+            dict_["new_state"] = m2m_audit.get_m2m_values_for(instance=instance)
+            for k,v in dict_['new_state'].items():
+                dict_['new_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
+            import ipdb; ipdb.set_trace()
+            dict_["m2m_change"] = True
+            cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
+            #save_audit(instance, Audit.CHANGE, kwargs=dict_)
+        elif kwargs['action'] == 'pre_clear':
+            cache_key = get_cache_key_for_instance(instance)
+            dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
+            dict_["old_state"] = m2m_audit.get_m2m_values_for(instance=instance)
+            for k,v in dict_['old_state'].items():
+                dict_['old_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
+            import ipdb; ipdb.set_trace()
+            cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
+            LOG.debug("old_state saved in cache with key %s for m2m auditing" % cache_key)
+        elif kwargs['action'] == 'post_clear':
+            print 'post_clear'
+
 def audit_post_save(sender, **kwargs):
     if kwargs['created'] and not kwargs.get('raw', False):
         save_audit(kwargs['instance'], Audit.ADD)
@@ -57,11 +97,15 @@ def audit_pre_save(sender, **kwargs):
     instance=kwargs.get('instance')
 
     if instance.pk and not kwargs.get('raw', False):
-        if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
+        if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS or settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
             if m2m_audit.get_m2m_fields_for(instance): #has m2m fields?
+                import ipdb; ipdb.set_trace()
                 cache_key = get_cache_key_for_instance(instance)
-                dict_ = {"old_state" : {}, "new_state": {}}
+                dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
                 dict_["old_state"] = m2m_audit.get_m2m_values_for(instance=instance)
+                for k,v in dict_['old_state'].items():
+                    dict_['old_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
+                import ipdb; ipdb.set_trace()
                 cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
                 LOG.debug("old_state saved in cache with key %s for m2m auditing" % cache_key)
         save_audit(kwargs['instance'], Audit.CHANGE)
@@ -84,14 +128,17 @@ def register(*my_models):
             models.signals.pre_delete.connect(audit_pre_delete, sender=model)
 
             # signals for m2m fields
-            if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
+            if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS or settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
                 m2ms = model._meta.get_m2m_with_model()
                 if m2ms:
                     for m2m in m2ms:
                         try:
                             sender_m2m = getattr(model, m2m[0].name).through
                             if sender_m2m.__name__ == "{}_{}".format(model.__name__, m2m[0].name):
-                                models.signals.m2m_changed.connect(audit_m2m_change, sender=sender_m2m)
+                                if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
+                                    models.signals.m2m_changed.connect(audit_m2m_change, sender=sender_m2m)
+                                if settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
+                                    models.signals.m2m_changed.connect(audit_m2m_change_relation, sender=sender_m2m)
                                 LOG.debug("Attached signal to: %s" % sender_m2m)
                         except Exception, e:
                             LOG.warning("could not create signal for m2m field: %s" % e)
