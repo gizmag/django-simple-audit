@@ -289,7 +289,9 @@ def save_audit(instance, operation, kwargs={}):
             repr(instance), type(instance), getattr(instance, '__dict__', None), exc_info=True)
 
 
-def handle_unicode(s):
-    if isinstance(s, basestring):
-        return s.encode('utf-8')
-    return s
+def handle_unicode(val):
+    if not val:
+        return None
+    elif isinstance(val, basestring):
+        return val.encode('utf-8')
+    return val
