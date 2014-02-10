@@ -99,13 +99,9 @@ def audit_pre_save(sender, **kwargs):
     if instance.pk and not kwargs.get('raw', False):
         if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS or settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
             if m2m_audit.get_m2m_fields_for(instance): #has m2m fields?
-                import ipdb; ipdb.set_trace()
                 cache_key = get_cache_key_for_instance(instance)
-                dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
+                dict_ = {"old_state" : {}, "new_state": {}}
                 dict_["old_state"] = m2m_audit.get_m2m_values_for(instance=instance)
-                for k,v in dict_['old_state'].items():
-                    dict_['old_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
-                import ipdb; ipdb.set_trace()
                 cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
                 LOG.debug("old_state saved in cache with key %s for m2m auditing" % cache_key)
         save_audit(kwargs['instance'], Audit.CHANGE)
