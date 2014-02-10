@@ -75,7 +75,7 @@ def audit_pre_save(sender, **kwargs):
     instance=kwargs.get('instance')
 
     if instance.pk and not kwargs.get('raw', False):
-        if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS or settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
+        if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
             if m2m_audit.get_m2m_fields_for(instance): #has m2m fields?
                 cache_key = get_cache_key_for_instance(instance)
                 dict_ = {"old_state" : {}, "new_state": {}}
