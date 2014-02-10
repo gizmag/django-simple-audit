@@ -63,10 +63,8 @@ def audit_m2m_change_relation(sender, **kwargs):
             dict_["new_state"] = m2m_audit.get_m2m_values_for(instance=instance)
             for k,v in dict_['new_state'].items():
                 dict_['new_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
-            import ipdb; ipdb.set_trace()
-            dict_["m2m_change"] = True
-            cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
-            #save_audit(instance, Audit.CHANGE, kwargs=dict_)
+            dict_["m2m_change_relation"] = True
+            save_audit(instance, Audit.CHANGE, kwargs=dict_)
         elif kwargs['action'] == 'pre_clear':
             cache_key = get_cache_key_for_instance(instance)
             dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
