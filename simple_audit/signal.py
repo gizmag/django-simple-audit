@@ -73,8 +73,6 @@ def audit_m2m_change_relation(sender, **kwargs):
                 dict_['old_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
             cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
             LOG.debug("old_state saved in cache with key %s for m2m auditing" % cache_key)
-        elif kwargs['action'] == 'post_clear':
-            print 'post_clear'
 
 def audit_post_save(sender, **kwargs):
     if kwargs['created'] and not kwargs.get('raw', False):
