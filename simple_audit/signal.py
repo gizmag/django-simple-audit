@@ -26,9 +26,7 @@ def audit_m2m_change(sender, **kwargs):
     if kwargs.get('action'):
         action = kwargs.get('action')
         instance = kwargs.get('instance')
-        if kwargs['action'] == "pre_add":
-            pass
-        elif kwargs['action'] == "post_add":
+        if kwargs['action'] == "post_add":
             cache_key = get_cache_key_for_instance(instance)
             dict_ = cache.get(cache_key)
             if not dict_:
@@ -38,14 +36,8 @@ def audit_m2m_change(sender, **kwargs):
             dict_["m2m_change"] = True
             cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
             save_audit(instance, Audit.CHANGE, kwargs=dict_)
-        elif kwargs['action'] == "pre_remove":
-            pass
         elif kwargs['action'] == "post_remove":
             save_audit(kwargs['instance'], Audit.DELETE, kwargs=kwargs)
-        elif kwargs['action'] == "pre_clear":
-            pass
-        elif kwargs['action'] == "post_clear":
-            pass
 
 
 def audit_m2m_change_relation(sender, **kwargs):
