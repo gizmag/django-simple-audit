@@ -64,7 +64,7 @@ def audit_m2m_change_relation(sender, **kwargs):
             for k,v in old_m2ms.items():
                 dict_['old_state_m2m'][k] = [item['id'] for item in v]
             cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
-            LOG.debug("old_state saved in cache with key %s for m2m auditing" % cache_key)
+            LOG.debug("old_state saved in cache with key %s for m2m relation auditing" % cache_key)
 
 def audit_post_save(sender, **kwargs):
     if kwargs['created'] and not kwargs.get('raw', False):
