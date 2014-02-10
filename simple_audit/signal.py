@@ -55,16 +55,7 @@ def audit_m2m_change_relation(sender, **kwargs):
     if kwargs.get('action'):
         action = kwargs.get('action')
         instance = kwargs.get('instance')
-        if kwargs['action'] == "pre_remove":
-            import ipdb; ipdb.set_trace()
-            print 'pre_remove'
-            pass
-        elif kwargs['action'] == "post_remove":
-            print 'post_remove'
-            pass
-        elif kwargs['action'] == 'pre_add':
-            pass
-        elif kwargs['action'] == 'post_add':
+        if kwargs['action'] == 'post_add':
             cache_key = get_cache_key_for_instance(instance)
             dict_ = cache.get(cache_key)
             if not dict_:
