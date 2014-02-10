@@ -202,6 +202,7 @@ def save_audit(instance, operation, kwargs={}):
     """
 
     m2m_change = kwargs.get('m2m_change', False)
+    m2m_change_relation = kwargs.get('m2m_change_relation', False)
 
     try:
         persist_audit = True
@@ -210,13 +211,19 @@ def save_audit(instance, operation, kwargs={}):
         old_state = {}
         try:
             if operation == Audit.CHANGE and instance.pk:
-                if not m2m_change:
-                    old_state = to_dict(instance.__class__.objects.get(pk=instance.pk))
-                else:
+                if m2m_change:
                     #m2m change
                     LOG.debug("m2m change detected")
                     new_state = kwargs.get("new_state", {})
                     old_state = kwargs.get("old_state", {})
+                elif m2m_change_relation:
+                    #m2m relation change
+                    LOG.debug("m2m relation change detected")
+                    new_state = kwargs.get("new_state_m2m", {})
+                    old_state = kwargs.get("old_state_m2m", {})
+                else:
+                    old_state = to_dict(instance.__class__.objects.get(pk=instance.pk))
+
         except:
             pass
 
@@ -248,11 +255,11 @@ def save_audit(instance, operation, kwargs={}):
                         k,
                         _("was changed"),
                     ) for k, v in changed_fields.items()])
+
         elif operation == Audit.DELETE:
             description = _('Deleted %s') % unicode(instance)
         elif operation == Audit.ADD:
             description = _('Added %s') % unicode(instance)
-
         LOG.debug("called audit with operation=%s instance=%s persist=%s" % (operation, instance, persist_audit))
         if persist_audit:
             if m2m_change:
