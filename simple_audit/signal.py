@@ -26,9 +26,7 @@ def audit_m2m_change(sender, **kwargs):
     if kwargs.get('action'):
         action = kwargs.get('action')
         instance = kwargs.get('instance')
-        if kwargs['action'] == "pre_add":
-            pass
-        elif kwargs['action'] == "post_add":
+        if kwargs['action'] == "post_add":
             cache_key = get_cache_key_for_instance(instance)
             dict_ = cache.get(cache_key)
             if not dict_:
@@ -38,15 +36,35 @@ def audit_m2m_change(sender, **kwargs):
             dict_["m2m_change"] = True
             cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
             save_audit(instance, Audit.CHANGE, kwargs=dict_)
-        elif kwargs['action'] == "pre_remove":
-            pass
         elif kwargs['action'] == "post_remove":
             save_audit(kwargs['instance'], Audit.DELETE, kwargs=kwargs)
-        elif kwargs['action'] == "pre_clear":
-            pass
-        elif kwargs['action'] == "post_clear":
-            pass
 
+
+def audit_m2m_change_relation(sender, **kwargs):
+    """
+    audit m2m relation changes is settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS is True
+    """
+    if kwargs.get('action'):
+        action = kwargs.get('action')
+        instance = kwargs.get('instance')
+        if kwargs['action'] in {'post_add', 'post_clear'}:
+            cache_key = get_cache_key_for_instance(instance)
+            dict_ = cache.get(cache_key)
+            if not dict_:
+                dict_ = {"old_state_m2m": {}, "new_state_m2m": {}}
+            new_m2ms = m2m_audit.get_m2m_values_for(instance=instance)
+            for k,v in new_m2ms.items():
+                dict_['new_state_m2m'][k] = [item['id'] for item in v]
+            dict_["m2m_change_relation"] = True
+            save_audit(instance, Audit.CHANGE, kwargs=dict_)
+        elif kwargs['action'] == 'pre_clear':
+            cache_key = get_cache_key_for_instance(instance)
+            dict_ = {"old_state_m2m": {}, "new_state_m2m": {}}
+            old_m2ms = m2m_audit.get_m2m_values_for(instance=instance)
+            for k,v in old_m2ms.items():
+                dict_['old_state_m2m'][k] = [item['id'] for item in v]
+            cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
+            LOG.debug("old_state saved in cache with key %s for m2m relation auditing" % cache_key)
 
 def audit_post_save(sender, **kwargs):
     if kwargs['created'] and not kwargs.get('raw', False):
@@ -84,14 +102,17 @@ def register(*my_models):
             models.signals.pre_delete.connect(audit_pre_delete, sender=model)
 
             # signals for m2m fields
-            if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
+            if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS or settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
                 m2ms = model._meta.get_m2m_with_model()
                 if m2ms:
                     for m2m in m2ms:
                         try:
                             sender_m2m = getattr(model, m2m[0].name).through
                             if sender_m2m.__name__ == "{}_{}".format(model.__name__, m2m[0].name):
-                                models.signals.m2m_changed.connect(audit_m2m_change, sender=sender_m2m)
+                                if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
+                                    models.signals.m2m_changed.connect(audit_m2m_change, sender=sender_m2m)
+                                if settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
+                                    models.signals.m2m_changed.connect(audit_m2m_change_relation, sender=sender_m2m)
                                 LOG.debug("Attached signal to: %s" % sender_m2m)
                         except Exception, e:
                             LOG.warning("could not create signal for m2m field: %s" % e)
@@ -173,6 +194,7 @@ def save_audit(instance, operation, kwargs={}):
     """
 
     m2m_change = kwargs.get('m2m_change', False)
+    m2m_change_relation = kwargs.get('m2m_change_relation', False)
 
     try:
         persist_audit = True
@@ -181,13 +203,19 @@ def save_audit(instance, operation, kwargs={}):
         old_state = {}
         try:
             if operation == Audit.CHANGE and instance.pk:
-                if not m2m_change:
-                    old_state = to_dict(instance.__class__.objects.get(pk=instance.pk))
-                else:
+                if m2m_change:
                     #m2m change
                     LOG.debug("m2m change detected")
                     new_state = kwargs.get("new_state", {})
                     old_state = kwargs.get("old_state", {})
+                elif m2m_change_relation:
+                    #m2m relation change
+                    LOG.debug("m2m relation change detected")
+                    new_state = kwargs.get("new_state_m2m", {})
+                    old_state = kwargs.get("old_state_m2m", {})
+                else:
+                    old_state = to_dict(instance.__class__.objects.get(pk=instance.pk))
+
         except:
             pass
 
@@ -219,11 +247,11 @@ def save_audit(instance, operation, kwargs={}):
                         k,
                         _("was changed"),
                     ) for k, v in changed_fields.items()])
+
         elif operation == Audit.DELETE:
             description = _('Deleted %s') % unicode(instance)
         elif operation == Audit.ADD:
             description = _('Added %s') % unicode(instance)
-
         LOG.debug("called audit with operation=%s instance=%s persist=%s" % (operation, instance, persist_audit))
         if persist_audit:
             if m2m_change:
@@ -253,7 +281,9 @@ def save_audit(instance, operation, kwargs={}):
             repr(instance), type(instance), getattr(instance, '__dict__', None), exc_info=True)
 
 
-def handle_unicode(s):
-    if isinstance(s, basestring):
-        return s.encode('utf-8')
-    return s
+def handle_unicode(val):
+    if not val:
+        return None
+    elif isinstance(val, basestring):
+        return val.encode('utf-8')
+    return val
