@@ -51,18 +51,18 @@ def audit_m2m_change_relation(sender, **kwargs):
             cache_key = get_cache_key_for_instance(instance)
             dict_ = cache.get(cache_key)
             if not dict_:
-                dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
             dict_["new_state"] = m2m_audit.get_m2m_values_for(instance=instance)
             for k,v in dict_['new_state'].items():
                 dict_['new_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
+                dict_ = {"old_state_m2m": {}, "new_state_m2m": {}}
             dict_["m2m_change_relation"] = True
             save_audit(instance, Audit.CHANGE, kwargs=dict_)
         elif kwargs['action'] == 'pre_clear':
             cache_key = get_cache_key_for_instance(instance)
-            dict_ = {"old_state" : {}, "new_state": {}, "old_state_m2m": {}, "new_state_m2m": {}}
             dict_["old_state"] = m2m_audit.get_m2m_values_for(instance=instance)
             for k,v in dict_['old_state'].items():
                 dict_['old_state_m2m'][k] = [item['id'] for item in v]  # eg {'followers': [1,2,3]}
+            dict_ = {"old_state_m2m": {}, "new_state_m2m": {}}
             cache.set(cache_key, dict_, DEFAULT_CACHE_TIMEOUT)
             LOG.debug("old_state saved in cache with key %s for m2m auditing" % cache_key)
 
