@@ -118,6 +118,25 @@ def register(*my_models):
                             LOG.warning("could not create signal for m2m field: %s" % e)
 
 
+def unregister(*my_models):
+    if not settings.DJANGO_SIMPLE_AUDIT_ACTIVATED:
+        return False
+    for model in my_models:
+        models.signals.pre_save.disconnect(audit_pre_save, sender=model)
+        models.signals.post_save.disconnect(audit_post_save, sender=model)
+        models.signals.pre_delete.disconnect(audit_pre_delete, sender=model)
+
+        if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
+            m2ms = model._meta.get_m2m_with_model()
+            if m2ms:
+                for m2m in m2ms:
+                    try:
+                        sender_m2m = getattr(model, m2m[0].name).through
+                        if sender_m2m.__name__ == "{}_{}".format(model.__name__, m2m[0].name):
+                            models.signals.m2m_changed.disconnect(audit_m2m_change, sender=sender_m2m)
+                    except Exception, e:
+                        LOG.warning("could not disconnect signal for m2m field: %s" % e)
+
 NOT_ASSIGNED = object()
 
 
