@@ -30,4 +30,5 @@ setup(
     license='BSD',
     packages=find_packages('.', exclude=('testproject*',)),
     include_package_data=True,
+    install_requires=['south']
 )
