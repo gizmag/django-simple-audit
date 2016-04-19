@@ -13,7 +13,7 @@ def ValuesQuerySetToDict(vqs):
 
 def get_m2m_fields_for(instance=None):
     """gets m2mfields for instance"""
-    return instance._meta._many_to_many()
+    return instance._meta.many_to_many
 
 
 def get_m2m_values_for(instance=None):

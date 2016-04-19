@@ -4,12 +4,14 @@ from django.db import models
 from django.contrib.auth.models import User
 import simple_audit
 
+
 class Topping(models.Model):
 
     name = models.CharField(max_length=50, blank=False, unique=True)
 
     def __unicode__(self):
         return self.name
+
 
 class Pizza(models.Model):
 
@@ -19,6 +21,7 @@ class Pizza(models.Model):
 
     def __unicode__(self):
         return self.name
+
 
 class Message(models.Model):
 
@@ -36,7 +39,7 @@ class Owner(models.Model):
     def __unicode__(self):
         return self.name
 
-        
+
 class VirtualMachine(models.Model):
 
     name = models.CharField(max_length=50, blank=False)

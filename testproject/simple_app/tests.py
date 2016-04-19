@@ -26,9 +26,9 @@ class SimpleTest(TestCase):
         self.content_type_pizza = ContentType.objects.get_for_model(Pizza)
 
     def test_add_topping_and_search_audit(self):
-        """tests add a topping"""
+        """Tests add a topping."""
         topping = Topping.objects.get_or_create(name="potato")[0]
-        
+
         #topping created
         self.assertTrue(topping.pk)
         #audit recorded?
@@ -38,7 +38,7 @@ class SimpleTest(TestCase):
                                             description="Added potato"))
 
     def test_add_pizza_without_toppings(self):
-        """test add pizza without topping"""
+        """Test add pizza without topping."""
         pizza = Pizza.objects.get_or_create(name="mussarela")[0]
 
         #pizza created?
@@ -53,7 +53,7 @@ class SimpleTest(TestCase):
 
 
     def test_add_pizza_with_toppings_with_audit_enabled(self):
-        """test add pizza with topping"""
+        """Test add pizza with topping."""
 
         self.assertTrue(settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS)
         audit_settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS = settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS
@@ -69,16 +69,12 @@ class SimpleTest(TestCase):
 
         #audit recorded?
         self.assertTrue(Audit.objects.get(operation=0, 
-                                            content_type=self.content_type_pizza,
-                                            object_id=pizza.pk,
-                                            description="Added peperoni"))
+                        content_type=self.content_type_pizza,
+                        object_id=pizza.pk,
+                        description="Added peperoni"))
 
         #m2m audit recorded?
-        #u"field toppings.1.id: was changed from None to 1\nfield toppings.1.name: was changed from None to 'calabresa'"
-        desc = "field toppings.%s.id: was changed from None to %s\nfield toppings.%s.name: was changed from None to '%s'" % (self.topping_onion.id,
-         self.topping_onion.id,
-         self.topping_onion.id,
-         self.topping_onion.name)
+        desc = 'field toppings.{pk}.id was changed\nfield toppings.{pk}.name was changed'.format(pk=self.topping_onion.pk)
 
         self.assertTrue(Audit.objects.get(operation=1, 
                             content_type=self.content_type_pizza,
@@ -87,9 +83,7 @@ class SimpleTest(TestCase):
 
 
     def test_m2m_dict_diff_with_new_and_old_state_different(self):
-        """
-        test where old state and new state contains different elements
-        """
+        """Test where old state and new state contains different elements."""
 
         new_state={u'toppings': [{u'id': 1, 'name': u'ceboloa'},
                                       {u'id': 5, 'name': u'cogumelo'},
@@ -116,9 +110,7 @@ class SimpleTest(TestCase):
 
 
     def test_m2m_dict_diff_with_empty_new_state(self):
-        """
-        test where new state is an empty dict
-        """
+        """Test where new state is an empty dict."""
 
         new_state={}
 
@@ -143,9 +135,7 @@ class SimpleTest(TestCase):
 
 
     def test_m2m_dict_diff_with_empty_old_state(self):
-        """
-        test where old state is an empty dict
-        """
+        """Test where old state is an empty dict."""
 
         new_state={u'toppings': [{u'id': 1, 'name': u'ceboloa'},
                                       {u'id': 5, 'name': u'cogumelo'},
@@ -170,9 +160,7 @@ class SimpleTest(TestCase):
 
 
     def test_m2m_dict_diff_with_old_and_new_state_the_same(self):
-        """
-        test where old state and new state are the same. no change detected!
-        """
+        """Test where old state and new state are the same. no change detected!"""
 
         new_state={u'toppings': [{u'id': 1, 'name': u'ceboloa'},
                                   {u'id': 5, 'name': u'cogumelo'},
@@ -189,9 +177,9 @@ class SimpleTest(TestCase):
                                     {u'id': 9, 'name': u'banana'},
                                     {u'id': 10, 'name': u'abacaxi'},
                                     ]}
-                   
+
         expected_response = []
-        
+
         diff = m2m_audit.m2m_dict_diff(old_state, new_state)
-        
+
         self.assertEqual(diff, expected_response)
