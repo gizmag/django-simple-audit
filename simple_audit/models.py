@@ -39,7 +39,7 @@ class Audit(models.Model):
         (DELETE, _('delete'))
     )
     date = models.DateTimeField(auto_now_add=True, verbose_name=_("Date"))
-    operation = models.PositiveIntegerField(max_length=255, choices=OPERATION_CHOICES, verbose_name=_('Operation'))
+    operation = models.PositiveIntegerField(choices=OPERATION_CHOICES, verbose_name=_('Operation'))
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
@@ -90,7 +90,7 @@ class AuditRequest(models.Model):
     THREAD_LOCAL = threading.local()
 
     request_id = models.CharField(max_length=255)
-    ip = models.IPAddressField()
+    ip = models.GenericIPAddressField()
     path = models.CharField(max_length=1024)
     date = models.DateTimeField(auto_now_add=True, verbose_name=_("Date"))
     user = models.ForeignKey(getattr(settings, 'AUTH_USER_MODEL', 'auth.User'))

@@ -109,7 +109,7 @@ You need to have at least one cache backend set in your django settings, otherwi
 Dependencies
 ============
 
-* Django >= 1.4.x
+* Django >= 1.8
 * django.contrib.contenttypes installed in INSTALLED_APPS
 
 
@@ -119,6 +119,10 @@ TODO
 
 CHANGELOG
 =========
+* 0.2.1
+    * Drop South, require Django 1.8 or newer.
+* 0.2.0
+    * Use South for migrations
 * 0.1.12
     * Created some simple tests
     * Enable many to many fiedls tracking (see Usage)
