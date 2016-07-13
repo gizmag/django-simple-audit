@@ -37,20 +37,20 @@ def m2m_proccess_diff_states(old, new):
     old and new are dictionaries in the following format
 
     old:
-    {u'toppings.1': {u'id': [1, None], 'name': [u'ceboloa', None]},
-     u'toppings.11': {u'id': [11, None], 'name': [u'abacate', None]},
-     u'toppings.5': {u'id': [5, None], 'name': [u'cogumelo', None]},
-     u'toppings.6': {u'id': [6, None], 'name': [u'abobrinha', None]},
-     u'toppings.8': {u'id': [8, None], 'name': [u'codorna', None]},
-     u'toppings.9': {u'id': [9, None], 'name': [u'banana', None]}}
+    {'toppings.1': {'id': [1, None], 'name': ['ceboloa', None]},
+     'toppings.11': {'id': [11, None], 'name': ['abacate', None]},
+     'toppings.5': {'id': [5, None], 'name': ['cogumelo', None]},
+     'toppings.6': {'id': [6, None], 'name': ['abobrinha', None]},
+     'toppings.8': {'id': [8, None], 'name': ['codorna', None]},
+     'toppings.9': {'id': [9, None], 'name': ['banana', None]}}
 
     new:
-    {u'toppings.1': {u'id': [None, 1], 'name': [None, u'ceboloa']},
-     u'toppings.10': {u'id': [None, 10], 'name': [None, u'abacaxi']},
-     u'toppings.5': {u'id': [None, 5], 'name': [None, u'cogumelo']},
-     u'toppings.6': {u'id': [None, 6], 'name': [None, u'abobrinha']},
-     u'toppings.8': {u'id': [None, 8], 'name': [None, u'codorna']},
-     u'toppings.9': {u'id': [None, 9], 'name': [None, u'banana']}}
+    {'toppings.1': {'id': [None, 1], 'name': [None, 'ceboloa']},
+     'toppings.10': {'id': [None, 10], 'name': [None, 'abacaxi']},
+     'toppings.5': {'id': [None, 5], 'name': [None, 'cogumelo']},
+     'toppings.6': {'id': [None, 6], 'name': [None, 'abobrinha']},
+     'toppings.8': {'id': [None, 8], 'name': [None, 'codorna']},
+     'toppings.9': {'id': [None, 9], 'name': [None, 'banana']}}
     """
     # print "old..."
     # pprint(old)
@@ -68,6 +68,7 @@ def m2m_proccess_diff_states(old, new):
                 try:
                     diff[field_id][k][1] = new_copy[field_id][k][1]
                 except:
+                    raise
                     pass
             del new_copy[field_id]
 
@@ -83,11 +84,11 @@ def m2m_clean_unchanged_fields(dict_diff):
     returns a list of dicts with only the changes
     """
     dict_list = []
-    for key in dict_diff.keys():
+    for key in sorted(dict_diff):
         new_dict = {}
         dict_ = dict_diff.get(key)
 
-        for value in dict_.keys():
+        for value in sorted(dict_):
             compound_key = "%s.%s" % (key, value)
             if dict_[value][0] == dict_[value][1]:
                 del dict_[value]

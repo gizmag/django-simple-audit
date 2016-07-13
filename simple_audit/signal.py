@@ -1,17 +1,25 @@
 # -*- coding:utf-8 -*-
 from __future__ import absolute_import, unicode_literals
+
+# stdlib
 import logging
 import re
 import threading
 from pprint import pprint
-from . import m2m_audit
+
+# requirements
 from django.db import models
-from .models import Audit, AuditChange
-from . import settings
 from django.utils.translation import ugettext_lazy as _
 from django.core.cache import cache
 
-MODEL_LIST = set()
+# project
+from . import MODEL_LIST, m2m_audit, settings
+from .models import Audit, AuditChange
+
+
+UNICODE = type('')  # unicode thanks to unicode_literals
+STRING = type(b'')  # byte string in Python 3, or non-unicode string in Python 2.
+STRING_TYPES = (UNICODE, STRING)
 LOG = logging.getLogger(__name__)
 DEFAULT_CACHE_TIMEOUT = 120
 
@@ -89,35 +97,6 @@ def audit_pre_delete(sender, **kwargs):
     save_audit(kwargs['instance'], Audit.DELETE)
 
 
-def register(*my_models):
-    if not settings.DJANGO_SIMPLE_AUDIT_ACTIVATED:
-        return False
-    global MODEL_LIST
-    for model in my_models:
-        if model is not None:
-            if model not in MODEL_LIST:
-                MODEL_LIST.add(model)
-            models.signals.pre_save.connect(audit_pre_save, sender=model)
-            models.signals.post_save.connect(audit_post_save, sender=model)
-            models.signals.pre_delete.connect(audit_pre_delete, sender=model)
-
-            # signals for m2m fields
-            if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS or settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
-                m2ms = model._meta.get_m2m_with_model()
-                if m2ms:
-                    for m2m in m2ms:
-                        try:
-                            sender_m2m = getattr(model, m2m[0].name).through
-                            if sender_m2m.__name__ == "{}_{}".format(model.__name__, m2m[0].name):
-                                if settings.DJANGO_SIMPLE_AUDIT_M2M_FIELDS:
-                                    models.signals.m2m_changed.connect(audit_m2m_change, sender=sender_m2m)
-                                if settings.DJANGO_SIMPLE_AUDIT_M2M_RELATIONS:
-                                    models.signals.m2m_changed.connect(audit_m2m_change_relation, sender=sender_m2m)
-                                LOG.debug("Attached signal to: %s" % sender_m2m)
-                        except Exception, e:
-                            LOG.warning("could not create signal for m2m field: %s" % e)
-
-
 def unregister(*my_models):
     if not settings.DJANGO_SIMPLE_AUDIT_ACTIVATED:
         return False
@@ -134,8 +113,8 @@ def unregister(*my_models):
                         sender_m2m = getattr(model, m2m[0].name).through
                         if sender_m2m.__name__ == "{}_{}".format(model.__name__, m2m[0].name):
                             models.signals.m2m_changed.disconnect(audit_m2m_change, sender=sender_m2m)
-                    except Exception, e:
-                        LOG.warning("could not disconnect signal for m2m field: %s" % e)
+                    except Exception as err:
+                        LOG.warning("could not disconnect signal for m2m field: %s" % err)
 
 NOT_ASSIGNED = object()
 
@@ -145,10 +124,10 @@ def get_value(obj, attr):
     Returns the value of an attribute. First it tries to return the unicode value.
     """
     if hasattr(obj, attr):
-        try:
-            return getattr(obj, attr).__unicode__()
-        except:
-            value = getattr(obj, attr)
+        value = getattr(obj, attr)
+        if hasattr(value, '__unicode__'):
+            return value.__unicode__()
+        else:
             if hasattr(value, 'all'):
                 return [v.__unicode__() for v in value.all()]
             else:
@@ -174,18 +153,16 @@ def to_dict(obj):
 
 def dict_diff(old, new):
 
-    keys = set(old.keys() + new.keys())
+    keys = set(old)
+    keys.update(new)
     diff = {}
     for key in keys:
         old_value = old.get(key, None)
         new_value = new.get(key, None)
         if old_value != new_value:
-            try:
-                if re.match(key, 'password'):
-                    old_value = 'xxxxxxxx'
-                    new_value = "*" * len(new.get(key))
-            except:
-                pass
+            if re.match(key, 'password'):
+                old_value = 'xxxxxxxx'
+                new_value = "*" * len(new.get(key))
             diff[key] = (old_value, new_value)
 
     if diff:
@@ -194,9 +171,9 @@ def dict_diff(old, new):
 
 
 def format_value(v):
-    if isinstance(v, basestring):
-        return u"'%s'" % v
-    return unicode(v)
+    if isinstance(v, STRING_TYPES):
+        return "'%s'" % v
+    return '%s' % v
 
 
 def save_audit(instance, operation, kwargs={}):
@@ -215,94 +192,86 @@ def save_audit(instance, operation, kwargs={}):
     m2m_change = kwargs.get('m2m_change', False)
     m2m_change_relation = kwargs.get('m2m_change_relation', False)
 
-    try:
-        persist_audit = True
+    persist_audit = True
 
-        new_state = to_dict(instance)
-        old_state = {}
-        try:
-            if operation == Audit.CHANGE and instance.pk:
-                if m2m_change:
-                    #m2m change
-                    LOG.debug("m2m change detected")
-                    new_state = kwargs.get("new_state", {})
-                    old_state = kwargs.get("old_state", {})
-                elif m2m_change_relation:
-                    #m2m relation change
-                    LOG.debug("m2m relation change detected")
-                    new_state = kwargs.get("new_state_m2m", {})
-                    old_state = kwargs.get("old_state_m2m", {})
-                else:
-                    old_state = to_dict(instance.__class__.objects.get(pk=instance.pk))
+    new_state = to_dict(instance)
+    old_state = {}
+    if operation == Audit.CHANGE and instance.pk:
+        if m2m_change:
+            #m2m change
+            LOG.debug("m2m change detected")
+            new_state = kwargs.get("new_state", {})
+            old_state = kwargs.get("old_state", {})
+        elif m2m_change_relation:
+            #m2m relation change
+            LOG.debug("m2m relation change detected")
+            new_state = kwargs.get("new_state_m2m", {})
+            old_state = kwargs.get("old_state_m2m", {})
+        else:
+            old_state = to_dict(instance.__class__.objects.get(pk=instance.pk))
 
-        except:
-            pass
+    if m2m_change:
+        #m2m_change returns a list of changes
+        changed_fields = m2m_audit.m2m_dict_diff(old_state, new_state)
+    else:
+        changed_fields = dict_diff(old_state, new_state)
+
+    if operation == Audit.CHANGE:
+        #is there any change?
+        if not changed_fields:
+            persist_audit = False
 
         if m2m_change:
-            #m2m_change returns a list of changes
-            changed_fields = m2m_audit.m2m_dict_diff(old_state, new_state)
-        else:
-            changed_fields = dict_diff(old_state, new_state)
-
-        if operation == Audit.CHANGE:
-            #is there any change?
-            if not changed_fields:
-                persist_audit = False
-
-            if m2m_change:
-                descriptions = []
-                for changed_field in changed_fields:
-                    description = u"\n".join([u"%s %s %s" %
-                        (
-                            _("field"),
-                            k,
-                            _("was changed"),
-                        ) for k, v in changed_field.items()])
-                    descriptions.append(description)
-            else:
-                description = u"\n".join([u"%s %s %s" %
+            descriptions = []
+            for changed_field in changed_fields:
+                description = "\n".join(["%s %s %s" %
                     (
                         _("field"),
                         k,
                         _("was changed"),
-                    ) for k, v in changed_fields.items()])
+                    ) for k, v in changed_field.items()])
+                descriptions.append(description)
+        else:
+            description = "\n".join(["%s %s %s" %
+                (
+                    _("field"),
+                    k,
+                    _("was changed"),
+                ) for k, v in changed_fields.items()])
 
-        elif operation == Audit.DELETE:
-            description = _('Deleted %s') % unicode(instance)
-        elif operation == Audit.ADD:
-            description = _('Added %s') % unicode(instance)
-        LOG.debug("called audit with operation=%s instance=%s persist=%s" % (operation, instance, persist_audit))
-        if persist_audit:
-            if m2m_change:
-                for description in descriptions:
-                    audit = Audit.register(instance, description, operation)
-                    changed_field = changed_fields.pop(0)
-
-                    for field, (old_value, new_value) in changed_field.items():
-                        change = AuditChange()
-                        change.audit = audit
-                        change.field = field
-                        change.new_value = handle_unicode(new_value)
-                        change.old_value = handle_unicode(old_value)
-                        change.save()
-            else:
+    elif operation == Audit.DELETE:
+        description = _('Deleted %s') % instance
+    elif operation == Audit.ADD:
+        description = _('Added %s') % instance
+    LOG.debug("called audit with operation=%s instance=%s persist=%s" % (operation, instance, persist_audit))
+    if persist_audit:
+        if m2m_change:
+            for description in descriptions:
                 audit = Audit.register(instance, description, operation)
+                changed_field = changed_fields.pop(0)
 
-                for field, (old_value, new_value) in changed_fields.items():
+                for field, (old_value, new_value) in changed_field.items():
                     change = AuditChange()
                     change.audit = audit
                     change.field = field
                     change.new_value = handle_unicode(new_value)
                     change.old_value = handle_unicode(old_value)
                     change.save()
-    except:
-        LOG.error(u'Error registering auditing to %s: (%s) %s',
-            repr(instance), type(instance), getattr(instance, '__dict__', None), exc_info=True)
+        else:
+            audit = Audit.register(instance, description, operation)
+
+            for field, (old_value, new_value) in changed_fields.items():
+                change = AuditChange()
+                change.audit = audit
+                change.field = field
+                change.new_value = handle_unicode(new_value)
+                change.old_value = handle_unicode(old_value)
+                change.save()
 
 
 def handle_unicode(val):
     if not val:
         return None
-    elif isinstance(val, basestring):
+    elif isinstance(val, UNICODE):
         return val.encode('utf-8')
     return val

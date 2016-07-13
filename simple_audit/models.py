@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from __future__ import absolute_import, unicode_literals
 
 import logging
 import threading
@@ -8,8 +9,7 @@ from django.conf import settings
 from django.db import models
 from .managers import AuditManager
 
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -40,9 +40,9 @@ class Audit(models.Model):
     )
     date = models.DateTimeField(auto_now_add=True, verbose_name=_("Date"))
     operation = models.PositiveIntegerField(choices=OPERATION_CHOICES, verbose_name=_('Operation'))
-    content_type = models.ForeignKey(ContentType)
+    content_type = models.ForeignKey('contenttypes.ContentType')
     object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey('content_type', 'object_id')
     audit_request = models.ForeignKey("AuditRequest", null=True)
     description = models.TextField()
     obj_description = models.TextField(db_index=True, null=True, blank=True)
@@ -56,7 +56,7 @@ class Audit(models.Model):
     class Meta:
         db_table = 'audit'
         app_label = CustomAppName('simple_audit', 'Audits')
-        verbose_name = u'Audit'
+        verbose_name = 'Audit'
 
     @staticmethod
     def register(audit_obj, description, operation=None):
@@ -64,13 +64,13 @@ class Audit(models.Model):
         audit.operation = Audit.CHANGE if operation is None else operation
         audit.content_object = audit_obj
         audit.description = description
-        audit.obj_description = audit_obj and unicode(audit_obj)
+        audit.obj_description = audit_obj and '%s' % audit_obj
         audit.audit_request = AuditRequest.current_request(True)
         audit.save()
         return audit
 
     def __unicode__(self):
-        return u"%s" % (self.operation)
+        return "%s" % (self.operation)
 
 
 class AuditChange(models.Model):
@@ -82,7 +82,7 @@ class AuditChange(models.Model):
     class Meta:
         db_table = 'audit_change'
         app_label = CustomAppName('simple_audit', 'Audits')
-        verbose_name = u'Audit'
+        verbose_name = 'Audit'
 
 
 class AuditRequest(models.Model):
@@ -98,7 +98,7 @@ class AuditRequest(models.Model):
     class Meta:
         db_table = 'audit_request'
         app_label = CustomAppName('simple_audit', 'Audits')
-        verbose_name = u'Audit'
+        verbose_name = 'Audit'
 
     @staticmethod
     def new_request(path, user, ip):

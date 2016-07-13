@@ -1,10 +1,10 @@
 from django.db import models
 from django.db.models.query import QuerySet
-from django.contrib.contenttypes.models import ContentType
 
 
 class AuditQuerySet(QuerySet):
     def _get_content_type(self, obj):
+        from django.contrib.contenttypes.models import ContentType
         return ContentType.objects.get_for_model(obj)
 
     def for_(self, obj):
