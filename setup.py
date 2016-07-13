@@ -31,6 +31,8 @@ setup(
     packages=find_packages('.', exclude=('testproject*',)),
     include_package_data=True,
     install_requires=[
-        'Django>=1.7',
+        'Django>=1.8',
     ],
+    zip_safe=False,
+    test_suite='testproject.manage.run_tests',
 )
