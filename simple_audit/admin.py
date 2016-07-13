@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*_
+from __future__ import absolute_import, unicode_literals
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.contenttypes.models import ContentType
@@ -54,10 +55,10 @@ class AuditAdmin(admin.ModelAdmin):
     audit_description.short_description = _("Description")
 
     def audit_content(self, audit):
-        obj_string = audit.obj_description or unicode(audit.content_object)
+        obj_string = audit.obj_description or '%s' % audit.content_object
 
         return "<a title='%(filter)s' href='%(base)s?content_type__id__exact=%(type_id)s&object_id__exact=%(id)s'>%(type)s: %(obj)s</a>" % {
-            'filter': unicode(_("Click to filter")),
+            'filter': '%s' % _("Click to filter"),
             'base': reverse('admin:simple_audit_audit_changelist'),
             'type': audit.content_type,
             'type_id': audit.content_type.id,
@@ -68,12 +69,12 @@ class AuditAdmin(admin.ModelAdmin):
 
     def audit_user(self, audit):
         if audit.audit_request:
-            return u"<a title='%s' href='%s?user=%d'>%s</a>" \
+            return "<a title='%s' href='%s?user=%d'>%s</a>" \
                 % (_("Click to filter"), reverse('admin:simple_audit_audit_changelist'), audit.audit_request.user.id, audit.audit_request.user)
         else:
-            return u"%s" \
+            return "%s" \
                 % (_("unknown"))
-            
+
     audit_user.admin_order_field = "audit_request__user"
     audit_user.short_description = _("User")
     audit_user.allow_tags = True

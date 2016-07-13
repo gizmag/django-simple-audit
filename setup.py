@@ -1,3 +1,4 @@
+import io
 import os
 from setuptools import setup, find_packages
 
@@ -7,9 +8,9 @@ STATUS_ALPHA = 'Development Status :: 3 - Alpha'
 
 version = '0.2.2'
 README = os.path.join(os.path.dirname(__file__), 'README.rst')
-long_description = open(README).read()
+long_description = io.open(README, 'rt', encoding='utf-8').read()
 setup(
-    name='django-simple-audit-fork',
+    name='django-simple-audit-gizmag',
     version=version,
     description="Simple audit for model instances in Django.",
     long_description=long_description,
@@ -20,17 +21,32 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Utilities'],
+        'Topic :: Utilities',
+
+        # Generally, we support the following.
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+        "Framework :: Django",
+
+        # Specifically, we support the following releases.
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Framework :: Django :: 1.8",
+        "Framework :: Django :: 1.9",
+    ],
     keywords='revisions versioning history audit',
-    author='Leandro Souza',
-    author_email='lsouzarj@gmail.com',
-    url='https://github.com/leandrosouza/django-simple-audit',
+    author='Gizmag',
+    author_email='opensource@gizmag.com',
+    url='https://github.com/gizmag/django-simple-audit',
     license='BSD',
     packages=find_packages('.', exclude=('testproject*',)),
     include_package_data=True,
     install_requires=[
-        'Django>=1.7',
+        'Django>=1.8',
     ],
+    zip_safe=False,
+    test_suite='testproject.manage.run_tests',
 )

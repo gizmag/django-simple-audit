@@ -3,6 +3,8 @@ django simple audit
 ****************************************
 This applications was created to audit model's changes and maintain a log of them
 
+.. image:: https://travis-ci.org/gizmag/django-simple-audit.svg?branch=master
+    :target: https://travis-ci.org/gizmag/django-simple-audit
 
 Installation
 ===============
@@ -18,15 +20,15 @@ Then modify your settings.py, adding the package `simple_audit` in INSTALLED_APP
 
 .. code-block:: bash
 
-	INSTALLED_APPS = (
-	    '...',
+        INSTALLED_APPS = [
+            '...',
 	    'simple_audit',
-	)
+        ]
 
-	MIDDLEWARE_CLASSES = (
-	     '...',
+        MIDDLEWARE_CLASSES = [
+             '...',
 	     'simple_audit.middleware.TrackingRequestOnThreadLocalMiddleware',
-	)
+        ]
 
 
 Usage
@@ -98,6 +100,8 @@ Tracking m2m fields changes is still experimental, but you can enable it with th
 
 You need to have at least one cache backend set in your django settings, otherwise the previous settings will be set to False.
 
+.. code-block:: python
+
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -119,6 +123,8 @@ TODO
 
 CHANGELOG
 =========
+* 0.2.2
+    * Add support for Django 1.9.
 * 0.2.1
     * Drop South, require Django 1.8 or newer.
 * 0.2.0

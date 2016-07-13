@@ -1,2 +1,1 @@
 Django>=1.8
-django-extensions>=1.6
