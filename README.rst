@@ -18,15 +18,15 @@ Then modify your settings.py, adding the package `simple_audit` in INSTALLED_APP
 
 .. code-block:: bash
 
-	INSTALLED_APPS = (
-	    '...',
+        INSTALLED_APPS = [
+            '...',
 	    'simple_audit',
-	)
+        ]
 
-	MIDDLEWARE_CLASSES = (
-	     '...',
+        MIDDLEWARE_CLASSES = [
+             '...',
 	     'simple_audit.middleware.TrackingRequestOnThreadLocalMiddleware',
-	)
+        ]
 
 
 Usage
@@ -97,6 +97,8 @@ Tracking m2m fields changes is still experimental, but you can enable it with th
     DJANGO_SIMPLE_AUDIT_M2M_FIELDS = True
 
 You need to have at least one cache backend set in your django settings, otherwise the previous settings will be set to False.
+
+.. code-block:: python
 
     CACHES = {
         'default': {
