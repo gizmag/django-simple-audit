@@ -121,6 +121,8 @@ TODO
 
 CHANGELOG
 =========
+* 0.2.2
+    * Add support for Django 1.9.
 * 0.2.1
     * Drop South, require Django 1.8 or newer.
 * 0.2.0
