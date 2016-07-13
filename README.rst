@@ -3,6 +3,8 @@ django simple audit
 ****************************************
 This applications was created to audit model's changes and maintain a log of them
 
+.. image:: https://travis-ci.org/gizmag/django-simple-audit.svg?branch=master
+    :target: https://travis-ci.org/gizmag/django-simple-audit
 
 Installation
 ===============
